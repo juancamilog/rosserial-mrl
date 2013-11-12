@@ -1,3 +1,10 @@
+## MRL McGill branch of ROSserial
+
+This repo is a branch from the official ROSserial repo. In this version, support for XBee Series 2 radios has been added.
+This code should be compatible with radios running the ZNet 2.5 and the ZigBee firmwares. I have also added compression of
+the payload of serial frames and support for topic negotiation between rosserial_python/SerialClient.py nodes.
+
+
 ## ROSserial for Hydro
 
 This repo is ported from https://kforge.ros.org/rosserial/hg. It has been catkinized and updated for ROS Groovy and newer.
