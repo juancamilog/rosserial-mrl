@@ -1,0 +1,5 @@
+xbee_port: /dev/ttyACM0
+baud_rate: 115200
+compressed: true
+debug: true
+subscriber_list: [{topic: /gps_box/imu/data, type: {package: sensor_msgs, name: Imu}}, {topic: /gps_box/gps/fix, type: {package: sensor_msgs, name: NavSatFix}}]

@@ -1,0 +1,5 @@
+<launch>
+    <node name="xbee_network" pkg="rosserial_xbee" type="xbee_network_ZB.py" output="screen" respawn="true">
+       <rosparam command="load" file="$(find rosserial_xbee)/launch/xbee_network.yaml"/>
+    </node>
+</launch>
