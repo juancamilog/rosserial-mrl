@@ -215,7 +215,7 @@ class BidirectionalNode:
         ServiceServer responds to requests from the serial device.
     """
 
-    def __init__(self, port=None, baud=57600, timeout=1.0, compressed=False):
+    def __init__(self, port=None, baud=57600, timeout=5.0, compressed=False):
         """ Initialize node, connect to bus, attempt to negotiate topics. """
         self.mutex = thread.allocate_lock()
 

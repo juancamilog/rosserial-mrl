@@ -154,7 +154,7 @@ def rxCallback(msg):
     try:
         global serial_ports
         if debug:
-            print "Received %s"%(msg)
+            rospy.loginfo( "Received %s"%(msg))
         if msg['id'] == 'rx':
             src = msg['source_addr_long']
             data = msg['rf_data']
@@ -232,14 +232,14 @@ def initXbeeNetwork(xbee):
     while modem_status!='\x06' and modem_status!='\x02':
         time.sleep(0.1)
 
-    print "xbee radio started..."
+    rospy.loginfo("Xbee radio started...")
 
     xbee.send('at', command="ND")
     time.sleep(0.1)
 
 
 if __name__== '__main__':
-    print "RosSerial Xbee Network"
+    rospy.loginfo("RosSerial Xbee Network")
     rospy.init_node('xbee_network')
 
     xbee_port = rospy.get_param('~xbee_port', '/dev/ttyUSB0')
@@ -249,14 +249,14 @@ if __name__== '__main__':
 
     # Open serial port
     ser = serial.Serial(xbee_port, baud_rate, timeout=timeout)
-    print "Opened Serial Port"
+    rospy.loginfo("Opened Serial Port")
     ser.flush()
     ser.flushInput()
     ser.flushOutput()
     time.sleep(0.1)
     # Create API object
     xbee = ZigBee(ser, callback= rxCallback,  escaped= True)
-    print "Started Xbee"
+    rospy.loginfo("Started Xbee")
     xbee.MAX_PACKET_SIZE = 84
 
     initXbeeNetwork(xbee)
@@ -268,7 +268,7 @@ if __name__== '__main__':
     while not rospy.is_shutdown():
         try:
             # send the ND command to discover nodes
-            print "Checking for nodes in network..."
+            rospy.loginfo("Checking for nodes in network...")
             xbee.send('at', command="ND")
             time.sleep(20.0)
         except KeyboardInterrupt:
@@ -277,4 +277,4 @@ if __name__== '__main__':
     #rospy.spin()
     ser.close()
 
-    print "Quiting the Sensor Network"
+    rospy.loginfo("Quiting the Sensor Network")
