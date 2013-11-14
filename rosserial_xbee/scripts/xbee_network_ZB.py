@@ -61,7 +61,7 @@ class FakeSerial():
         self.xbee  = xbee
         self.id = id
         self.lock = threading.Lock()
-        self.timeout = 5.0
+        self.timeout = 0.1
         self.node_data = node_data
         self.debug = rospy.get_param('~debug', False)
         
@@ -141,7 +141,7 @@ def processNodeData(msg):
     
     serial_ports[xid] = FakeSerial(node_data['source_addr_long'], xbee, node_data)
     time.sleep(.1)
-    serial_nodes[xid] = bidirectional_node.BidirectionalNode(serial_ports[xid], timeout=10.0, compressed = rospy.get_param('~compressed', False))
+    serial_nodes[xid] = bidirectional_node.BidirectionalNode(serial_ports[xid], compressed = rospy.get_param('~compressed', False))
     initSerialNode(serial_nodes[xid])
 
     # start the rosserial client thread

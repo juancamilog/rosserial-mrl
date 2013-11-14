@@ -39,6 +39,7 @@ import roslib;
 import rospy
 
 import thread
+import threading
 from serial import *
 import StringIO
 
@@ -129,7 +130,8 @@ class Subscriber:
         """ Forward message to serial device. """
         data_buffer = StringIO.StringIO()
         msg.serialize(data_buffer)
-        if self.parent.synced:
+        # only send data if the other side is alive
+        if self.parent.synced is not False:
             self.parent.send(self.id, data_buffer.getvalue())
 
 
@@ -213,7 +215,7 @@ class BidirectionalNode:
         ServiceServer responds to requests from the serial device.
     """
 
-    def __init__(self, port=None, baud=57600, timeout=5.0, compressed=False):
+    def __init__(self, port=None, baud=57600, timeout=1.0, compressed=False):
         """ Initialize node, connect to bus, attempt to negotiate topics. """
         self.mutex = thread.allocate_lock()
 
@@ -241,7 +243,7 @@ class BidirectionalNode:
                 rospy.signal_shutdown("Error opening serial: %s" % e)
                 raise SystemExit
 
-        #self.port.timeout = 0.01  # Edit the port timeout
+        self.port.timeout = 0.01  # Edit the port timeout
 
         time.sleep(0.1)           # Wait for ready (patch for Uno)
 
@@ -299,7 +301,7 @@ class BidirectionalNode:
                     rospy.logerr("Lost sync with device, restarting...")
                 else:
                     rospy.logerr("Unable to sync with device; possible link problem or link software version mismatch such as hydro rosserial_python with groovy Arduino")
-                self.synced == False
+                self.synced = False
                 self.lastsync_lost = rospy.Time.now()
                 self.sendDiagnostics(diagnostic_msgs.msg.DiagnosticStatus.ERROR, "no sync with device")
                 self.requestTopics()
@@ -567,7 +569,7 @@ class BidirectionalNode:
 
     def send(self, topic, msg):
         if self.compressed:
-            msg = zlib.compress(msg,3)
+            msg = zlib.compress(msg,9)
         """ Send a message on a particular topic to the device. """
         with self.mutex:
             length = len(msg)
