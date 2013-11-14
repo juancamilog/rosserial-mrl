@@ -114,10 +114,9 @@ class XBeeBase(threading.Thread):
         frame = APIFrame(escaped=self._escaped)
         mode = 0
         while True:
-                if self._callback and not self._thread_continue:
-                    raise ThreadQuitException
-                
-                while (  self.serial.inWaiting() <1):
+                while (  self.serial.inWaiting() <1 ):
+                    if self._callback and not self._thread_continue:
+                        raise ThreadQuitException
                     time.sleep(0.01)
                 byte = self.serial.read()
                 if byte =='':
@@ -194,7 +193,6 @@ class XBeeBase(threading.Thread):
             #  given
             if data:
                 packet += data
-                
         return packet
     
     def _split_response(self, data):

@@ -36,10 +36,11 @@ parser.add_argument('--bd', metavar='\\xXX\\xXX', type=int, help='New baud rate 
 args = parser.parse_args()
 
 # Open serial port
-ser = open_serial_port(args.port, args.baud_rate, timeout=0.1)
+ser = open_serial_port(args.port, args.baud_rate, timeout= 0.1)
 # Create API object
 xbee = ZigBee(ser, callback= rxCallback,  escaped= True)
 
+print "Started Xbee"
 if args.id is not None:
     print 'Setting ID to %s'%(args.id)
     xbee.send('at', command='ID', parameter=args.id)
@@ -70,7 +71,7 @@ time.sleep(0.5)
 xbee.send('at', command='WR')
 time.sleep(0.5)
 time.sleep(0.5)
-try:
-    ser.close()
-except:
-    pass
+
+print "Wrote changes to radio"
+xbee.halt()
+ser.close()

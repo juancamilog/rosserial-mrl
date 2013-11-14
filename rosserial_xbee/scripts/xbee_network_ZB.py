@@ -37,7 +37,7 @@ __author__ = "gamboa@cim.mcgill.ca (Juan Camilo Gamboa)"
 from xbee import ZigBee
 import serial
 
-from rosserial_python import SerialClient,load_message
+from rosserial_python import bidirectional_node,load_message
 from rosserial_msgs.msg import TopicInfo
 import rospy
 
@@ -49,16 +49,15 @@ import threading
 import StringIO
 
 
-client_ports=  {}
-clients = {}
+serial_ports=  {}
+serial_nodes = {}
 nodes_in_network = {}
 modem_status = '\x00'
 debug = False
 
-
 class FakeSerial():
     def __init__(self, id, xbee, node_data):
-        self.rxdata =''
+        self.rxdata = ''
         self.xbee  = xbee
         self.id = id
         self.lock = threading.Lock()
@@ -129,38 +128,38 @@ def processNodeData(msg):
 
     xid = node_data['source_addr_long']
 
-    # initialize a rosserial client for the new node
+    # initialize a rosserial bidirectional node for the new xbee
     rospy.loginfo("Found xbee node with address %s and id %s"%([d for d in xid], node_data['node_id']))
 
     if xid in nodes_in_network.keys():
         # if we already know about this node, only update node_data
         nodes_in_network[xid] = node_data
-        #clients[xid].requestTopics()
+        #serial_nodes[xid].requestTopics()
         return
         
     nodes_in_network[xid] = node_data
     
-    client_ports[xid] = FakeSerial(node_data['source_addr_long'], xbee, node_data)
+    serial_ports[xid] = FakeSerial(node_data['source_addr_long'], xbee, node_data)
     time.sleep(.1)
-    clients[xid] = SerialClient(client_ports[xid], timeout=10.0, compressed = rospy.get_param('~compressed', False))
-    initSerialClient(clients[xid])
+    serial_nodes[xid] = bidirectional_node.BidirectionalNode(serial_ports[xid], timeout=10.0, compressed = rospy.get_param('~compressed', False))
+    initSerialNode(serial_nodes[xid])
 
     # start the rosserial client thread
-    t = threading.Thread(target=clients[xid].run)
+    t = threading.Thread(target=serial_nodes[xid].run)
     t.daemon = True 
     t.start()
     return node_data
 
 def rxCallback(msg):
     try:
-        global client_ports
+        global serial_ports
         if debug:
             print "Received %s"%(msg)
         if msg['id'] == 'rx':
             src = msg['source_addr_long']
             data = msg['rf_data']
             try:
-                client_ports[src].putData(data)
+                serial_ports[src].putData(data)
             except KeyError as e:
                 #rospy.loginfo("Rcv ID corrupted")
                 pass
@@ -177,7 +176,7 @@ def rxCallback(msg):
     	
     return
 
-def initSerialClient(client):
+def initSerialNode(serial_node):
     subscriber_list = rospy.get_param('~subscriber_list',[])
     topic_idx = 0
     for topic in subscriber_list:
@@ -195,7 +194,7 @@ def initSerialClient(client):
 
         _buffer = StringIO.StringIO()
         ti.serialize(_buffer)
-        client.setupPublisher(_buffer.getvalue())
+        serial_node.setupPublisher(_buffer.getvalue())
        
     publisher_list = rospy.get_param('~publisher_list',[])
     for topic in publisher_list:
@@ -212,11 +211,11 @@ def initSerialClient(client):
 
         _buffer = StringIO.StringIO()
         ti.serialize(_buffer)
-        client.setupSubscriber(_buffer.getvalue())
+        serial_node.setupSubscriber(_buffer.getvalue())
 
     #service_client_list = rospy.get_param('~service_client_list',[])
     #service_server_list = rospy.get_param('~service_server_list',[])
-    client.negotiateTopics()
+    serial_node.negotiateTopics()
 
 def initXbeeNetwork(xbee):
     global modem_status
@@ -250,12 +249,14 @@ if __name__== '__main__':
 
     # Open serial port
     ser = serial.Serial(xbee_port, baud_rate, timeout=timeout)
+    print "Opened Serial Port"
     ser.flush()
     ser.flushInput()
     ser.flushOutput()
     time.sleep(0.1)
     # Create API object
     xbee = ZigBee(ser, callback= rxCallback,  escaped= True)
+    print "Started Xbee"
     xbee.MAX_PACKET_SIZE = 84
 
     initXbeeNetwork(xbee)
