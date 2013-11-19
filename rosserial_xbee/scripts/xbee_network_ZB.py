@@ -134,7 +134,7 @@ def processNodeData(msg):
     if xid in nodes_in_network.keys():
         # if we already know about this node, only update node_data
         nodes_in_network[xid] = node_data
-        #serial_nodes[xid].requestTopics()
+        serial_nodes[xid].requestTopics()
         return
         
     nodes_in_network[xid] = node_data
