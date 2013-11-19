@@ -569,7 +569,7 @@ class BidirectionalNode:
 
     def send(self, topic, msg):
         if self.compressed:
-            msg = zlib.compress(msg,9)
+            msg = zlib.compress(msg,4)
         """ Send a message on a particular topic to the device. """
         with self.mutex:
             length = len(msg)
