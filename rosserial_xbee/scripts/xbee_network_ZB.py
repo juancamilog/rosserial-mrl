@@ -278,6 +278,7 @@ if __name__== '__main__':
     xbee.MAX_PACKET_SIZE = 84
 
     # Set xbee network parameters
+    xb_params = {}
     xb_params['network_id'] = rospy.get_param('~xb_network_id', '\x34\x56')
     xb_params['node_name'] = rospy.get_param('~xb_node_name', socket.gethostname())
     xb_params['channel_mask'] = rospy.get_param('~xb_channel_mask', '\x00\xFE')
