@@ -36,6 +36,7 @@ __author__ = "gamboa@cim.mcgill.ca (Juan Camilo Gamboa)"
 
 from xbee import ZigBee
 import serial
+import socket
 
 from rosserial_python import bidirectional_node,load_message
 from rosserial_msgs.msg import TopicInfo
@@ -56,10 +57,10 @@ modem_status = '\x00'
 debug = False
 
 class FakeSerial():
-    def __init__(self, id, xbee, node_data):
+    def __init__(self, xbee, node_data):
         self.rxdata = ''
         self.xbee  = xbee
-        self.id = id
+        self.id = node_data['source_addr_long']
         self.lock = threading.Lock()
         self.timeout = 0.1
         self.node_data = node_data
@@ -134,12 +135,12 @@ def processNodeData(msg):
     if xid in nodes_in_network.keys():
         # if we already know about this node, only update node_data
         nodes_in_network[xid] = node_data
-        #serial_nodes[xid].requestTopics()
+        serial_nodes[xid].requestTopics()
         return
         
     nodes_in_network[xid] = node_data
     
-    serial_ports[xid] = FakeSerial(node_data['source_addr_long'], xbee, node_data)
+    serial_ports[xid] = FakeSerial(xbee, node_data)
     time.sleep(.1)
     serial_nodes[xid] = bidirectional_node.BidirectionalNode(serial_ports[xid], compressed = rospy.get_param('~compressed', False))
     initSerialNode(serial_nodes[xid])
@@ -177,11 +178,18 @@ def rxCallback(msg):
     return
 
 def initSerialNode(serial_node):
+    # To subscribe to atopic through rosserial means to create a local publisher that
+    # forwards rosserial data to the local ROS network
     subscriber_list = rospy.get_param('~subscriber_list',[])
     topic_idx = 0
     for topic in subscriber_list:
-        topic_idx = topic_idx+1
+        # only create topic if we are explicitly subscribing to this node
+        # i.e topic['node_name'] == serial.node.node_data['node_id']
+        #     or topic['node_name'] == 'broadcast'
+        if topic['node_name'] != serial.node.node_data['node_id'] or topic['node_name'] != 'broadcast':
+           pass
 
+        topic_idx = topic_idx+1
         msg = topic['type']
         m = load_message(msg['package'],msg['name'])
 
@@ -196,14 +204,22 @@ def initSerialNode(serial_node):
         ti.serialize(_buffer)
         serial_node.setupPublisher(_buffer.getvalue())
        
+    # To publish to a topic through rosserial means to create a local subscriber that
+    # pushes ROS messages into the rosserial link
     publisher_list = rospy.get_param('~publisher_list',[])
     for topic in publisher_list:
+        # only create topic if we are explicitly publishing to this node
+        # i.e topic['node_name'] == serial.node.node_data['node_id']
+        #     or topic['node_name'] == 'broadcast'
+        if topic['node_name'] != serial.node.node_data['node_id'] or topic['node_name'] != 'broadcast':
+           pass
+
         topic_idx = topic_idx+1
         msg = topic['type']
         m = load_message(msg['package'],msg['name'])
 
         ti = TopicInfo()
-        ti.topic_id=100+topic_idx
+        ti.topic_id=200+topic_idx
         ti.topic_name = topic['topic']
         ti.message_type = "%s/%s"%(msg['package'],msg['name'])
         ti.md5sum  = m._md5sum
@@ -217,11 +233,13 @@ def initSerialNode(serial_node):
     #service_server_list = rospy.get_param('~service_server_list',[])
     serial_node.negotiateTopics()
 
-def initXbeeNetwork(xbee):
+def initXbeeNetwork(xbee,params):
     global modem_status
-    xbee.send('at', command="SC", parameter='\x00\xFE')
+    xbee.send('at', command="SC", parameter=params['channel_mask'])
     time.sleep(0.1)
-    xbee.send('at', command="ID", parameter='\x34\x56')
+    xbee.send('at', command="ID", parameter=params['network_id'])
+    time.sleep(0.1)
+    xbee.send('at', command="NI", parameter=params['node_name'])
     time.sleep(0.1)
     xbee.send('at', command="AC")
     time.sleep(0.1)
@@ -236,7 +254,6 @@ def initXbeeNetwork(xbee):
 
     xbee.send('at', command="ND")
     time.sleep(0.1)
-
 
 if __name__== '__main__':
     rospy.loginfo("RosSerial Xbee Network")
@@ -254,17 +271,19 @@ if __name__== '__main__':
     ser.flushInput()
     ser.flushOutput()
     time.sleep(0.1)
+
     # Create API object
     xbee = ZigBee(ser, callback= rxCallback,  escaped= True)
     rospy.loginfo("Started Xbee")
     xbee.MAX_PACKET_SIZE = 84
 
-    initXbeeNetwork(xbee)
-    xbee.send('at', command="ID")
-    time.sleep(0.1)
-    xbee.send('at', command="CH")
-    time.sleep(0.1)
+    # Set xbee network parameters
+    xb_params['network_id'] = rospy.get_param('~xb_network_id', '\x34\x56')
+    xb_params['node_name'] = rospy.get_param('~xb_node_name', socket.gethostname())
+    xb_params['channel_mask'] = rospy.get_param('~xb_channel_mask', '\x00\xFE')
+    initXbeeNetwork(xbee,xb_params)
 
+    # start listening  for other nodes in the network
     while not rospy.is_shutdown():
         try:
             # send the ND command to discover nodes

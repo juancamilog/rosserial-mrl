@@ -243,7 +243,7 @@ class BidirectionalNode:
                 rospy.signal_shutdown("Error opening serial: %s" % e)
                 raise SystemExit
 
-        self.port.timeout = 0.01  # Edit the port timeout
+        #self.port.timeout = 0.01  # Edit the port timeout
 
         time.sleep(0.1)           # Wait for ready (patch for Uno)
 
@@ -569,7 +569,7 @@ class BidirectionalNode:
 
     def send(self, topic, msg):
         if self.compressed:
-            msg = zlib.compress(msg,9)
+            msg = zlib.compress(msg,4)
         """ Send a message on a particular topic to the device. """
         with self.mutex:
             length = len(msg)
