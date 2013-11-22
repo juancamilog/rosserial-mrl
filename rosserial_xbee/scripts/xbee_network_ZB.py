@@ -186,7 +186,7 @@ def initSerialNode(serial_node):
         # only create topic if we are explicitly subscribing to this node
         # i.e topic['node_name'] == serial.node.node_data['node_id']
         #     or topic['node_name'] == 'broadcast'
-        if topic['node_name'] != serial.node.node_data['node_id'] or topic['node_name'] != 'broadcast':
+        if topic['node_name'] != serial_node.node_data['node_id'] or topic['node_name'] != 'broadcast':
            pass
 
         topic_idx = topic_idx+1
