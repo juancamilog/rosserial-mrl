@@ -143,6 +143,7 @@ def rxCallback(msg):
     return
 
 def initSerialNode(serial_node, node_data):
+    debug = rospy.get_param('~debug', False);
     # To subscribe to atopic through rosserial means to create a local publisher that
     # forwards rosserial data to the local ROS network
     subscriber_list = rospy.get_param('~subscriber_list',[])
@@ -151,8 +152,12 @@ def initSerialNode(serial_node, node_data):
         # only create topic if we are explicitly subscribing to this node
         # i.e topic['node_name'] == serial.node.node_data['node_id']
         #     or topic['node_name'] == 'broadcast'
+        if debug:
+            rospy.loginfo("Expected topic node_name [%s]. Discovered node name [%s]."%(topic['node_name'],node.node_data))
         if topic['node_name'] != node_data['node_id'] or topic['node_name'] != 'broadcast':
            pass
+        if debug:
+            rospy.loginfo("Trying to create serial subscriber")
 
         topic_idx = topic_idx+1
         msg = topic['type']
@@ -176,9 +181,12 @@ def initSerialNode(serial_node, node_data):
         # only create topic if we are explicitly publishing to this node
         # i.e topic['node_name'] == serial.node.node_data['node_id']
         #     or topic['node_name'] == 'broadcast'
-        if topic['node_name'] != node.node_data['node_id'] or topic['node_name'] != 'broadcast':
+        if debug:
+            rospy.loginfo("Expected topic node_name [%s]. Discovered node name [%s]."%(topic['node_name'],node.node_data))
+        if topic['node_name'] != node_data['node_id'] or topic['node_name'] != 'broadcast':
            pass
-
+        if debug:
+            rospy.loginfo("Trying to create serial publisher")
         topic_idx = topic_idx+1
         msg = topic['type']
         m = load_message(msg['package'],msg['name'])

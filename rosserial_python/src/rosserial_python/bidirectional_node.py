@@ -317,7 +317,7 @@ class BidirectionalNode:
                 self.sendDiagnostics(diagnostic_msgs.msg.DiagnosticStatus.ERROR, "Packet Failed :  Failed to read msg data")
                 rospy.loginfo("Packet Failed :  Failed to read msg data")
                 rospy.loginfo("msg len is %d",len(msg))
-                self.port.flushInput()
+                #self.port.flushInput()
                 continue
 
             # checksum for topic id and msg
