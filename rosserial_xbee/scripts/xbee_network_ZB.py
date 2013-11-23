@@ -1,39 +1,4 @@
 #! /usr/bin/env python2
-# Software License Agreement (BSD License)
-#
-# Copyright (c) 2011, Willow Garage, Inc.
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions
-# are met:
-#
-#  * Redistributions of source code must retain the above copyright
-#    notice, this list of conditions and the following disclaimer.
-#  * Redistributions in binary form must reproduce the above
-#    copyright notice, this list of conditions and the following
-#    disclaimer in the documentation and/or other materials provided
-#    with the distribution.
-#  * Neither the name of Willow Garage, Inc. nor the names of its
-#    contributors may be used to endorse or promote products derived
-#    from this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-# "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-# LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-# FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-# COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-# INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-# BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-# LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-# ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
-
-__author__ = "astambler@willowgarage.com (Adam Stambler)"
-__author__ = "gamboa@cim.mcgill.ca (Juan Camilo Gamboa)"
-
 from xbee import ZigBee
 import serial
 import socket
@@ -95,10 +60,10 @@ class FakeSerial():
             #TODO use fragment ids (i.e. transmit the fragment id) to check for incomplete transmissions
             fragment_id = (n_packets - i)%255
             fragment = data[i*packet_size:min((i+1)*packet_size,len(data))]
-            #self.xbee.send('tx', frame_id=struct.pack('B',fragment_id), dest_addr=self.node_data['source_addr'],dest_addr_long=self.id ,data=fragment)
             self.xbee.send('tx', frame_id=struct.pack('B',fragment_id), options='\x01', dest_addr=self.node_data['source_addr'],dest_addr_long=self.id ,data=fragment)
+            # magic sleep to avoid choking. This sleep sets a maximum rate of 16 KB/s, which is
+            # above the maximum rae of 14.4 KB/s obtained at 115200 kbps
             time.sleep(0.005)
-        #self.xbee.send('tx', frame_id='0', dest_addr=self.node_data['source_addr'],dest_addr_long=self.id ,data=data)
             
     def putData(self, data):
         with (self.lock):
@@ -143,7 +108,7 @@ def processNodeData(msg):
     serial_ports[xid] = FakeSerial(xbee, node_data)
     time.sleep(.1)
     serial_nodes[xid] = bidirectional_node.BidirectionalNode(serial_ports[xid], compressed = rospy.get_param('~compressed', False))
-    initSerialNode(serial_nodes[xid])
+    initSerialNode(serial_nodes[xid],node_data)
 
     # start the rosserial client thread
     t = threading.Thread(target=serial_nodes[xid].run)
@@ -177,7 +142,7 @@ def rxCallback(msg):
     	
     return
 
-def initSerialNode(serial_node):
+def initSerialNode(serial_node, node_data):
     # To subscribe to atopic through rosserial means to create a local publisher that
     # forwards rosserial data to the local ROS network
     subscriber_list = rospy.get_param('~subscriber_list',[])
@@ -186,7 +151,7 @@ def initSerialNode(serial_node):
         # only create topic if we are explicitly subscribing to this node
         # i.e topic['node_name'] == serial.node.node_data['node_id']
         #     or topic['node_name'] == 'broadcast'
-        if topic['node_name'] != serial_node.node_data['node_id'] or topic['node_name'] != 'broadcast':
+        if topic['node_name'] != node_data['node_id'] or topic['node_name'] != 'broadcast':
            pass
 
         topic_idx = topic_idx+1
@@ -211,7 +176,7 @@ def initSerialNode(serial_node):
         # only create topic if we are explicitly publishing to this node
         # i.e topic['node_name'] == serial.node.node_data['node_id']
         #     or topic['node_name'] == 'broadcast'
-        if topic['node_name'] != serial.node.node_data['node_id'] or topic['node_name'] != 'broadcast':
+        if topic['node_name'] != node.node_data['node_id'] or topic['node_name'] != 'broadcast':
            pass
 
         topic_idx = topic_idx+1

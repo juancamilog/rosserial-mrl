@@ -1,5 +1,15 @@
-xbee_port: /dev/ttyUSB0
+xbee_port: /dev/ttyO2
 baud_rate: 115200
 compressed: true
 debug: False
 #subscriber_list: [{node_name: 'broadcast', topic: /gps_box/imu/data, type: {package: sensor_msgs, name: Imu}}, {node_name: 'broadcast', topic: /gps_box/gps/fix, type: {package: sensor_msgs, name: NavSatFix}}]
+subscriber_list: [
+{node_name: 'ramiusgpsbox', 
+ topic: /ramiusgpsbox/gps/fix, 
+ type: {package: sensor_msgs, name: NavSatFix}},
+{node_name: 'ramisgpsbox2',
+ topic: /ramiusgpsbox2/gps/fix, 
+ type: {package: sensor_msgs, name: NavSatFix}},
+{node_name: 'ramiusgpsbox', 
+ topic: /ramiusgpsbox/imu/data, 
+ type: {package: sensor_msgs, name: Imu}}]
